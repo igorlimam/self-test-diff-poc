@@ -1,5 +1,7 @@
 (ns build-block-map)
 
+(def possible-blocks ["0" "A" "B" "C100"])
+
 (defn get-block-id [line]
   (str (first (clojure.string/replace (clojure.string/trim line) #"\|" ""))))
 
