@@ -26,12 +26,12 @@
 
 (defn -main
   [& args]
-  (let [stream-model (io/input-stream "./modelo.txt")
-        stream-gerado (io/input-stream "./gerado.txt")
-        modelo-tmp-file (stream->temp-file stream-model (hash "modeloHash"))
-        gerado-tmp-file (stream->temp-file stream-gerado (hash "geradoHash"))
-        ;modelo-tmp-file (stream->temp-file (str->reader "0001|GOUM\n0000| OYOYOLDRUSTY\n0001| OYOYOLD\nA000| OYOYOLDRUSTY") (hash "modeloHash"))
-        ;gerado-tmp-file (stream->temp-file (str->reader "0001|GOUM\n0001| OYOYOLDRUSTY\nA001| GOMA") (hash "geradoHash"))
+  (let [;stream-model (io/input-stream "./modelo.txt")
+        ;stream-gerado (io/input-stream "./gerado.txt")
+        ;modelo-tmp-file (stream->temp-file stream-model (hash "modeloHash"))
+        ;gerado-tmp-file (stream->temp-file stream-gerado (hash "geradoHash"))
+        modelo-tmp-file (stream->temp-file (str->reader "0001|GOUM\n0000| OYOYOLDRUSTY\n0001| OYOYOLD\nA000| OYOYOLDRUSTY") (hash "modeloHash"))
+        gerado-tmp-file (stream->temp-file (str->reader "0001|GOUM\n0001| OYOYOLDRUSTY\nA001| GOMA") (hash "geradoHash"))
         tmp-diff-replace-file (java.io.File/createTempFile "DIFF-REPLACE" "txt")
         tmp-diff-added-file (java.io.File/createTempFile "DIFF-ADDED" "txt")
         tmp-diff-deleted-file (java.io.File/createTempFile "DIFF-DELETED" "txt")]
@@ -45,22 +45,21 @@
             deleted (set/difference (set (keys modelo-blocks)) (set (keys gerado-blocks)))
             added   (set/difference (set (keys gerado-blocks)) (set (keys modelo-blocks)))]
 
-        (loop [block (sort-by key-rank (set/union (set (keys modelo-blocks)) (set (keys gerado-blocks))))
-               anchor 0]
+        (loop [block (sort-by key-rank (set/union (set (keys modelo-blocks)) (set (keys gerado-blocks))))]
           (let [current-block (first block)
                 model-stream (io/reader modelo-tmp-file)
                 gerado-stream (io/reader gerado-tmp-file)]
             (cond
-              (contains? common current-block) (let [[ed new-anchor] (search-diff model-stream (get modelo-blocks current-block) gerado-stream (get gerado-blocks current-block) anchor)]
+              (contains? common current-block) (let [ed (search-diff model-stream (get modelo-blocks current-block) gerado-stream (get gerado-blocks current-block))]
                                                  (write-to-diff-file ed tmp-diff-deleted-file tmp-diff-replace-file tmp-diff-added-file)
-                                                 (recur (rest block) new-anchor))
-              (contains? deleted (first block)) (let [[ed new-anchor] (make-del-diff (io/reader modelo-tmp-file) (get modelo-blocks (first block)) tmp-diff-deleted-file anchor)]
+                                                 (recur (rest block)))
+              (contains? deleted (first block)) (let [ed (make-del-diff (io/reader modelo-tmp-file) (get modelo-blocks (first block)))]
                                                   (write-to-diff-file ed tmp-diff-deleted-file tmp-diff-replace-file tmp-diff-added-file)
-                                                  (recur (rest block) new-anchor))
+                                                  (recur (rest block)))
 
-              (contains? added (first block)) (let [[ed new-anchor] (make-add-diff (io/reader gerado-tmp-file) (get gerado-blocks (first block)) tmp-diff-added-file anchor)]
+              (contains? added (first block)) (let [ed (make-add-diff (io/reader gerado-tmp-file) (get gerado-blocks (first block)))]
                                                  (write-to-diff-file ed tmp-diff-deleted-file tmp-diff-replace-file tmp-diff-added-file)
-                                                 (recur (rest block) new-anchor))
+                                                 (recur (rest block)))
               :else (println (str "END OF DIFF")))))
         (merge-diffs (line-seq (io/reader tmp-diff-deleted-file)) (line-seq (io/reader tmp-diff-replace-file)) (line-seq (io/reader tmp-diff-added-file))))
       (finally

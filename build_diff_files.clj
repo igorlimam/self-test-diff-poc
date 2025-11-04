@@ -6,11 +6,11 @@
               writer-added (io/writer added :append true)
               writer-deleted (io/writer deleted :append true)]
     (doseq [edit edits]
-      (let [[_ true-line op original-content & content] edit]
+      (let [[line-key true-line op original-content new-content] edit]
         (case op
-          :+ (.write writer-added (str (first true-line) " - " (first (first content)) "\n"))
+          :+ (.write writer-added (str (first true-line) " - " (first new-content) "\n"))
           :- (.write writer-deleted (str (first true-line) " - " (first original-content) "\n"))
-          :r (.write writer-replace (str (first true-line) " - " (first original-content) " ** " (first (first content)) "\n")))))))
+          :r (.write writer-replace (str (first true-line) " - " (first original-content) " ** " (first new-content) "\n")))))))
 
 (defn merge-diffs [deleted replace added]
   (with-open [final-diff (io/writer (str "DIFF" (hash (.toEpochMilli (java.time.Instant/now))) ".txt") :append true)]
